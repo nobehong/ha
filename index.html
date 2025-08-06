@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GoldHEN Compatibility Checker</title>
+<style>
+  body {
+    background: #0f0f0f;
+    color: #e0e0e0;
+    font-family: "Courier New", monospace;
+    text-align: center;
+    padding: 2rem;
+  }
+  h1 {
+    color: #ff0000;
+  }
+  .result {
+    margin-top: 2rem;
+    font-size: 1.5rem;
+    padding: 1rem;
+    border: 2px solid #ff0000;
+    border-radius: 10px;
+    display: inline-block;
+    max-width: 400px;
+  }
+  .compatible {
+    color: #00ff00;
+    border-color: #00ff00;
+  }
+  .not-compatible {
+    color: #ff4444;
+    border-color: #ff4444;
+  }
+</style>
+</head>
+<body>
+
+<h1>PS4 GoldHEN Compatibility Checker</h1>
+<p id="info">Detecting your PS4 firmware version...</p>
+<div id="result" class="result">Waiting for detection...</div>
+
+<script>
+  (() => {
+    const compatibleFirmwarePatterns = [
+      /^5\.05$/, /^6\.72$/,
+      /^7\.(0|[0-9]|5)$/,
+      /^8\.(0|[0-9]|5)$/,
+      /^9\.(0|[0-9]|5)$/,
+      /^11\.(0|[0-9]|5)$/
+    ];
+
+    function getFirmwareVersion() {
+      const ua = navigator.userAgent;
+      const match = ua.match(/PlayStation 4 (\d+\.\d+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return null;
+    }
+
+    function checkCompatibility(version) {
+      if (!version) return false;
+      return compatibleFirmwarePatterns.some(pattern => pattern.test(version));
+    }
+
+    const firmware = getFirmwareVersion();
+    const resultEl = document.getElementById("result");
+    const infoEl = document.getElementById("info");
+
+    if (!firmware) {
+      infoEl.textContent = "PS4 firmware version not detected. Are you on a PS4 browser?";
+      resultEl.textContent = "This tool only works on the PS4 browser.";
+      resultEl.className = "result not-compatible";
+      return;
+    }
+
+    infoEl.textContent = `Detected PS4 Firmware: ${firmware}`;
+
+    if (firmware.startsWith("12.")) {
+      resultEl.textContent = "Firmware 12.x detected. GoldHEN is NOT supported on this version.";
+      resultEl.className = "result not-compatible";
+    } else if (checkCompatibility(firmware)) {
+      resultEl.textContent = "Your PS4 CAN RUN GoldHEN! 🎉";
+      resultEl.className = "result compatible";
+    } else {
+      resultEl.textContent = "Your PS4 firmware is NOT currently compatible with GoldHEN.";
+      resultEl.className = "result not-compatible";
+    }
+  })();
+</script>
+
+</body>
+</html>
