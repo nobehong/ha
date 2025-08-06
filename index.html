@@ -1,64 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>GoldHEN Compatibility Checker</title>
-<style>
-  body {
-    background: #0b0b0b;
-    color: #ff3f3f;
-    font-family: "Courier New", Courier, monospace;
-    text-align: center;
-    padding: 3rem;
-  }
-  h1 {
-    color: #ff0000;
-    margin-bottom: 0.5rem;
-  }
-  .result {
-    margin-top: 2rem;
-    font-size: 1.5rem;
-    padding: 1rem 2rem;
-    border: 3px solid #ff0000;
-    border-radius: 12px;
-    max-width: 420px;
-    margin-left: auto;
-    margin-right: auto;
-    word-wrap: break-word;
-    background: #1e0000;
-  }
-  .compatible {
-    color: #00ff00;
-    border-color: #00ff00;
-    background: #002200;
-  }
-  .not-compatible {
-    color: #ff4444;
-    border-color: #ff4444;
-    background: #330000;
-  }
-  .info {
-    margin-top: 1rem;
-    font-size: 0.9rem;
-    color: #888;
-    font-style: italic;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GoldHEN Compatibility Checker 2.0</title>
+  <style>
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 8px #ff0000; }
+      50% { text-shadow: 0 0 20px #ff5555; }
+    }
+    body {
+      margin: 0; padding: 3rem;
+      background: #0a0a0a;
+      color: #ff3f3f;
+      font-family: "Courier New", Courier, monospace;
+      text-align: center;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+    }
+    h1 {
+      font-weight: 900;
+      font-size: 2.6rem;
+      color: #ff0000;
+      animation: glowPulse 3s ease-in-out infinite;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 10px #ff0000;
+    }
+    .result {
+      margin: 2rem auto;
+      max-width: 460px;
+      border-radius: 14px;
+      border: 3px solid #ff0000;
+      padding: 1.4rem 2rem;
+      font-size: 1.6rem;
+      line-height: 1.4;
+      background: #1e0000;
+      color: #ff4d4d;
+      box-shadow: 0 0 12px #ff0000aa inset;
+      user-select: text;
+      cursor: default;
+      transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .result.compatible {
+      color: #00ff00;
+      border-color: #00ff00;
+      background: #002200;
+      box-shadow: 0 0 20px #00ff00cc inset;
+    }
+    .result.not-compatible {
+      color: #ff4444;
+      border-color: #ff4444;
+      background: #330000;
+      box-shadow: 0 0 20px #ff4444cc inset;
+    }
+    .info {
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      font-style: italic;
+      color: #888;
+      user-select: text;
+      max-width: 460px;
+      margin-left: auto;
+      margin-right: auto;
+      word-wrap: break-word;
+    }
+    button#retry {
+      margin-top: 2rem;
+      padding: 0.8rem 1.6rem;
+      font-family: monospace;
+      font-weight: 700;
+      font-size: 1rem;
+      border: none;
+      border-radius: 10px;
+      background: #ff0000;
+      color: #111;
+      cursor: pointer;
+      box-shadow: 0 0 8px #ff0000cc;
+      transition: background-color 0.25s ease;
+    }
+    button#retry:hover {
+      background: #ff5555;
+      box-shadow: 0 0 15px #ff5555cc;
+    }
+  </style>
 </head>
 <body>
 
-<h1>PS4 GoldHEN Compatibility Checker</h1>
-<div id="status">Detecting your PS4 firmware version...</div>
-<div id="result" class="result">Awaiting detection...</div>
-<div id="ua" class="info"></div>
+<h1>PS4 GoldHEN Compatibility Checker 2.0</h1>
+<div id="status">Initializing detection...</div>
+<div id="result" class="result">Awaiting PS4 browser input...</div>
+<div id="ua" class="info">User-Agent: <em>Loading...</em></div>
+<button id="retry" style="display:none;">Retry Detection</button>
 
 <script>
   (function() {
-    const ua = navigator.userAgent || "";
-    document.getElementById('ua').textContent = `User-Agent: ${ua}`;
-
-    // Known compatible firmwares for GoldHEN
     const compatibleFirmwares = [
       "5.05", "6.72",
       "7.00", "7.01", "7.02", "7.03", "7.04", "7.05",
@@ -71,51 +110,87 @@
       "11.50", "11.51", "11.52", "11.53", "11.54", "11.55"
     ];
 
-    // Extract firmware version from user-agent
-    let fw = null;
-
-    const fwPatterns = [
-      /PlayStation 4 (\d+\.\d+)/i,
-      /PS4; (\d+\.\d+)/i,
-      /PlayStation 4\/(\d+\.\d+)/i,
-      /PlayStation 4[ ;](\d+\.\d+)/i
+    const borderlineFirmwares = [
+      "10.00", "10.01", "10.50", "12.00", "12.01", "12.50"
     ];
 
-    for (const pattern of fwPatterns) {
-      const match = ua.match(pattern);
-      if (match && match[1]) {
-        fw = match[1];
-        break;
+    const statusEl = document.getElementById("status");
+    const resultEl = document.getElementById("result");
+    const uaEl = document.getElementById("ua");
+    const retryBtn = document.getElementById("retry");
+
+    // Modular extraction function
+    function extractFirmware(userAgent) {
+      const patterns = [
+        /PlayStation 4 (\d+\.\d+)/i,
+        /PS4; (\d+\.\d+)/i,
+        /PlayStation 4\/(\d+\.\d+)/i,
+        /PlayStation 4[ ;](\d+\.\d+)/i
+      ];
+      for (const pattern of patterns) {
+        const match = userAgent.match(pattern);
+        if (match && match[1]) return match[1];
       }
+      return null;
     }
 
-    const statusEl = document.getElementById('status');
-    const resultEl = document.getElementById('result');
+    // Core detection logic
+    function detectFirmware() {
+      statusEl.textContent = "Scanning your PS4 firmware...";
+      const ua = navigator.userAgent || "";
+      uaEl.textContent = "User-Agent: " + ua;
 
-    if (!fw) {
-      statusEl.textContent = "Could NOT detect your PS4 firmware version.";
-      resultEl.textContent = "Make sure you opened this on the PS4 browser.";
-      resultEl.className = "result not-compatible";
-      return;
+      // Random delay injection (100-500ms)
+      return new Promise(resolve => {
+        const delay = 100 + Math.random() * 400;
+        setTimeout(() => {
+          let fw = extractFirmware(ua);
+
+          if (!fw) {
+            statusEl.textContent = "Firmware version NOT detected.";
+            resultEl.textContent = "Open this page in the PS4 browser for accurate detection.";
+            resultEl.className = "result not-compatible";
+            retryBtn.style.display = "inline-block";
+            return resolve(false);
+          }
+
+          statusEl.textContent = `Detected PS4 Firmware: ${fw}`;
+
+          if (compatibleFirmwares.includes(fw)) {
+            resultEl.textContent = "Your PS4 CAN RUN GoldHEN! 🎉 Proceed with the ritual.";
+            resultEl.className = "result compatible";
+            retryBtn.style.display = "none";
+            return resolve(true);
+          }
+
+          if (borderlineFirmwares.includes(fw)) {
+            resultEl.textContent = `Firmware ${fw} is NEAR compatible. Stay alert for updates!`;
+            resultEl.className = "result not-compatible";
+            retryBtn.style.display = "none";
+            return resolve(true);
+          }
+
+          resultEl.textContent = "Your PS4 firmware is NOT currently compatible with GoldHEN.";
+          resultEl.className = "result not-compatible";
+          retryBtn.style.display = "none";
+          resolve(true);
+        }, delay);
+      });
     }
 
-    statusEl.textContent = `Detected PS4 Firmware: ${fw}`;
+    retryBtn.addEventListener("click", () => {
+      detectFirmware();
+    });
 
-    if (fw.startsWith("12.")) {
-      resultEl.textContent = "Firmware 12.x detected — GoldHEN is NOT supported on this version.";
-      resultEl.className = "result not-compatible";
-      return;
+    // Init detection on load
+    detectFirmware();
+
+    // Future: Placeholder for encrypted telemetry (commented out for ethical reasons)
+    /*
+    function sendTelemetry(data) {
+      // Encrypt & send data via webhook or Telegram API
     }
-
-    if (compatibleFirmwares.includes(fw)) {
-      resultEl.textContent = "Your PS4 CAN RUN GoldHEN! 🎉";
-      resultEl.className = "result compatible";
-      return;
-    }
-
-    // If we reach here, firmware is unknown or unsupported
-    resultEl.textContent = "Your PS4 firmware is NOT currently compatible with GoldHEN.";
-    resultEl.className = "result not-compatible";
+    */
   })();
 </script>
 
