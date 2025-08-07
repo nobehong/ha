@@ -1,4 +1,4 @@
-# PS4 GoldHEN Compatibility Checker 2.0
+PS4 GoldHEN Compatibility Checker 2.0
 
 This is a simple webpage that checks if your PS4’s firmware is compatible with the GoldHEN jailbreak. You run it right on your PS4’s browser — no extra software needed.
 
